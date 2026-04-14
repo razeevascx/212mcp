@@ -4,6 +4,7 @@
  */
 
 import { logger } from "@/utils/logger.js";
+import { resolveAuthHeader } from "@/utils/auth.js";
 import {
   Trading212Error,
   AuthenticationError,
@@ -36,26 +37,7 @@ export class BaseClient {
         ? "https://demo.trading212.com/api/v0"
         : "https://live.trading212.com/api/v0";
 
-    const explicitHeader = process.env.TRADING212_AUTH_HEADER;
-    const apiKey = process.env.TRADING212_API_KEY;
-    const apiSecret = process.env.TRADING212_API_SECRET;
-    const legacyToken = apiToken ?? process.env.TRADING212_API_TOKEN;
-
-    if (explicitHeader) {
-      this.authHeader = explicitHeader;
-    } else if (apiKey && apiSecret) {
-      const encoded = Buffer.from(`${apiKey}:${apiSecret}`, "utf8").toString(
-        "base64",
-      );
-      this.authHeader = `Basic ${encoded}`;
-    } else if (legacyToken) {
-      // Legacy compatibility path; official v0 public API expects Basic auth.
-      this.authHeader = `Bearer ${legacyToken}`;
-    } else {
-      throw new AuthenticationError(
-        "Set TRADING212_API_KEY + TRADING212_API_SECRET (or TRADING212_AUTH_HEADER)",
-      );
-    }
+    this.authHeader = resolveAuthHeader(apiToken);
 
     this.defaultHeaders = {
       Authorization: this.authHeader,
