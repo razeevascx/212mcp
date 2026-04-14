@@ -1,0 +1,8 @@
+[build]
+target = "node"
+outdir = "dist"
+root = "."
+
+[runtime]
+jsx = "automatic"
+jsxImportSource = "react"
