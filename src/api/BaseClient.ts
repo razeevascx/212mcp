@@ -20,6 +20,12 @@ interface FetchOptions {
   body?: string;
 }
 
+interface RequestContext {
+  correlationId: string;
+  method: string;
+  endpoint: string;
+}
+
 export class BaseClient {
   protected readonly baseUrl: string;
   protected readonly authHeader: string;
@@ -53,25 +59,55 @@ export class BaseClient {
     endpoint: string,
     options: FetchOptions = {},
   ): Promise<T> {
+    return this.requestWithRetry<T>(endpoint, options);
+  }
+
+  private async requestWithRetry<T>(
+    endpoint: string,
+    options: FetchOptions = {},
+    attempt = 1,
+  ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers = { ...this.defaultHeaders, ...options.headers };
+    const method = options.method || "GET";
+    const correlationId = crypto.randomUUID();
+    const startedAt = Date.now();
+    const context: RequestContext = {
+      correlationId,
+      method,
+      endpoint,
+    };
 
-    logger.debug("API Request", { method: options.method || "GET", url });
+    logger.debug("API Request", { ...context, url, attempt });
 
     try {
       const response = await fetch(url, {
-        method: options.method || "GET",
+        method,
         headers,
         body: options.body,
       });
+      const durationMs = Date.now() - startedAt;
 
       // Handle rate limiting
       if (response.status === 429) {
         const retryAfter = response.headers.get("Retry-After");
-        throw new RateLimitError(
+        const error = new RateLimitError(
           "Rate limit exceeded",
           retryAfter ? Number.parseInt(retryAfter, 10) : undefined,
         );
+        logger.warn("API Rate Limited", {
+          ...context,
+          status: response.status,
+          retryAfter: error.retryAfter,
+          durationMs,
+          attempt,
+        });
+        if (attempt < 3) {
+          const retryDelayMs = this.getRetryDelayMs(error.retryAfter, attempt);
+          await this.sleep(retryDelayMs);
+          return this.requestWithRetry(endpoint, options, attempt + 1);
+        }
+        throw error;
       }
 
       // Handle authentication errors
@@ -109,18 +145,44 @@ export class BaseClient {
       }
 
       const data: T = await response.json();
-      logger.debug("API Response", { status: response.status, endpoint });
+      logger.debug("API Response", {
+        ...context,
+        status: response.status,
+        durationMs,
+      });
       return data;
     } catch (error) {
       if (error instanceof Trading212Error) {
-        logger.warn("API Error", { endpoint, error: error.message });
+        logger.warn("API Error", {
+          ...context,
+          error: error.message,
+          code: error.code,
+          statusCode: error.statusCode,
+          attempt,
+        });
         throw error;
       }
 
       // Handle network errors
-      logger.error("Network Error", { endpoint, error: String(error) });
+      logger.error("Network Error", {
+        ...context,
+        error: String(error),
+        attempt,
+      });
       throw new APIError(`Network error: ${String(error)}`, 0);
     }
+  }
+
+  private getRetryDelayMs(retryAfterSeconds: number | undefined, attempt: number): number {
+    if (retryAfterSeconds !== undefined && !Number.isNaN(retryAfterSeconds)) {
+      return Math.max(retryAfterSeconds, 1) * 1000;
+    }
+    const exponentialBaseMs = 500;
+    return exponentialBaseMs * 2 ** (attempt - 1);
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private async safeReadErrorBody(

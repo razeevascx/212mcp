@@ -125,15 +125,21 @@ Use this MCP server config:
 {
   "mcpServers": {
     "trading212": {
-      "command": "bun",
-      "args": ["run", "src/server.ts"],
-      "env": {
-        "TRADING212_API_KEY": "your_api_key_here",
-        "TRADING212_API_SECRET": "your_api_secret_here"
-      }
+      "command": "/absolute/path/to/212mcp/start.sh"
     }
   }
 }
+```
+
+Create `start.sh` and make it executable:
+
+```bash
+#!/bin/bash
+set -euo pipefail
+set -a
+source /absolute/path/to/212mcp/.env
+set +a
+exec bun run /absolute/path/to/212mcp/src/server.ts
 ```
 
 ## MCP Tools
@@ -150,9 +156,7 @@ Use this MCP server config:
 
 ### Portfolio / Positions
 
-- `fetch_open_positions`
-- `search_specific_position_by_ticker`
-- `fetch_open_position_by_ticker`
+- `fetch_open_positions` (optional `ticker` filter)
 
 ### Orders
 
@@ -206,3 +210,5 @@ Use this MCP server config:
 - **Credentials missing:** set `TRADING212_API_KEY` and `TRADING212_API_SECRET`.
 - **Auth errors:** regenerate API credentials and restart server.
 - **Claude cannot connect:** verify Bun install, command path, and Claude MCP config.
+
+On startup, the server validates auth configuration and fails fast if credentials are incomplete.

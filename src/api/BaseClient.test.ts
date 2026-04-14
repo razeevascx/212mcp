@@ -1,11 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach, mock } from "bun:test";
 import { BaseClient } from "./BaseClient.js";
-import {
-  APIError,
-  AuthenticationError,
-  RateLimitError,
-  ValidationError,
-} from "@/utils/errors.js";
+import { APIError, RateLimitError, ValidationError } from "@/utils/errors.js";
 
 class TestClient extends BaseClient {
   public get(path: string) {
@@ -65,12 +60,12 @@ describe("BaseClient", () => {
     await client.get("/ping");
   });
 
-  test("throws AuthenticationError when no credentials are set", () => {
+  test("throws ValidationError when no credentials are set", () => {
     delete process.env.TRADING212_API_KEY;
     delete process.env.TRADING212_API_SECRET;
     delete process.env.TRADING212_API_TOKEN;
 
-    expect(() => new TestClient()).toThrow(AuthenticationError);
+    expect(() => new TestClient()).toThrow(ValidationError);
   });
 
   test("uses demo base URL when ENVIRONMENT=demo", async () => {
@@ -95,22 +90,34 @@ describe("BaseClient", () => {
   });
 
   test("handles 429 response and parses Retry-After header", async () => {
+    let calls = 0;
+    globalThis.fetch = mock(async () => {
+      calls += 1;
+      if (calls < 3) {
+        return new Response("", {
+          status: 429,
+          headers: { "Retry-After": "0" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const client = new TestClient();
+    const result = await client.get("/rate-limit");
+    expect(result).toEqual({ ok: true });
+    expect(calls).toBe(3);
+  });
+
+  test("throws RateLimitError after max retries", async () => {
     globalThis.fetch = mock(async () =>
       new Response("", {
         status: 429,
-        headers: { "Retry-After": "120" },
+        headers: { "Retry-After": "0" },
       }),
     ) as unknown as typeof fetch;
 
     const client = new TestClient();
-
-    try {
-      await client.get("/rate-limit");
-      throw new Error("Expected RateLimitError");
-    } catch (error) {
-      expect(error).toBeInstanceOf(RateLimitError);
-      expect((error as RateLimitError).retryAfter).toBe(120);
-    }
+    await expect(client.get("/rate-limit")).rejects.toBeInstanceOf(RateLimitError);
   });
 
   test("buildQueryString omits nullish values", () => {

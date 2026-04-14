@@ -9,8 +9,11 @@ export class OrdersClient extends BaseClient {
   /**
    * Fetch all equity orders
    */
-  async fetchAllOrders(): Promise<Order[]> {
-    const query = this.buildQueryString({});
+  async fetchAllOrders(params: ListOrdersParams = {}): Promise<Order[]> {
+    const query = this.buildQueryString({
+      status: params.status,
+      limit: params.limit,
+    });
     return this.request(`/equity/orders${query}`);
   }
 

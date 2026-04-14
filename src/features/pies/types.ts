@@ -3,7 +3,7 @@
  */
 
 export interface Pie {
-  id?: number;
+  id: number;
   cash?: number;
   progress?: number;
   status?: "AHEAD" | "ON_TRACK" | "BEHIND";

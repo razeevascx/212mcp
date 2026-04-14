@@ -2,9 +2,52 @@
  * History Feature Types
  */
 
+import type { Order } from "@/features/orders/types.js";
+
 export interface HistoricalOrder {
-  order: Record<string, unknown>;
-  fill?: Record<string, unknown>;
+  order: Order;
+  fill?: HistoricalOrderFill;
+}
+
+export interface HistoricalOrderFill {
+  id: number;
+  quantity: number;
+  price: number;
+  filledAt: string;
+  tradingMethod: "TOTV" | "OTC";
+  type:
+    | "TRADE"
+    | "STOCK_SPLIT"
+    | "STOCK_DISTRIBUTION"
+    | "FOP"
+    | "FOP_CORRECTION"
+    | "CUSTOM_STOCK_DISTRIBUTION"
+    | "EQUITY_RIGHTS"
+    | "SCRIP_STOCK_DIVIDENDS"
+    | "STOCK_DIVIDENDS"
+    | "STOCK_ACQUISITION"
+    | "CASH_AND_STOCK_ACQUISITION"
+    | "SPIN_OFF";
+  walletImpact: {
+    currency: string;
+    fxRate?: number;
+    netValue?: number;
+    realisedProfitLoss?: number;
+    taxes?: Array<{
+      name:
+        | "COMMISSION_TURNOVER"
+        | "CURRENCY_CONVERSION_FEE"
+        | "FINRA_FEE"
+        | "FRENCH_TRANSACTION_TAX"
+        | "PTM_LEVY"
+        | "STAMP_DUTY"
+        | "STAMP_DUTY_RESERVE_TAX"
+        | "TRANSACTION_FEE";
+      quantity: number;
+      currency: string;
+      chargedAt?: string;
+    }>;
+  };
 }
 
 export interface Dividend {

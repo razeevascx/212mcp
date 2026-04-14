@@ -11,7 +11,9 @@ export type OrderStatus =
   | "CANCELLED"
   | "PARTIALLY_FILLED"
   | "FILLED"
-  | "REJECTED";
+  | "REJECTED"
+  | "REPLACING"
+  | "REPLACED";
 export type OrderType = "LIMIT" | "STOP" | "MARKET" | "STOP_LIMIT";
 export type OrderSide = "BUY" | "SELL";
 export type TimeValidity = "DAY" | "GOOD_TILL_CANCEL";

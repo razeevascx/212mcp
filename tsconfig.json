@@ -50,7 +50,6 @@
     "exclude": [
         "node_modules",
         "dist",
-        "src/tools",
-        "src/api/Trading212Client.ts"
+        "src/tools"
     ]
 }

@@ -50,7 +50,29 @@ export const ordersTools: Tool[] = [
     description: "Fetch all pending equity orders",
     inputSchema: {
       type: "object",
-      properties: {},
+      properties: {
+        status: {
+          type: "string",
+          enum: [
+            "LOCAL",
+            "UNCONFIRMED",
+            "CONFIRMED",
+            "NEW",
+            "CANCELLING",
+            "CANCELLED",
+            "PARTIALLY_FILLED",
+            "FILLED",
+            "REJECTED",
+            "REPLACING",
+            "REPLACED",
+          ],
+          description: "Optional order status filter",
+        },
+        limit: {
+          type: "number",
+          description: "Optional maximum number of orders to return",
+        },
+      },
       required: [],
     },
   },
@@ -67,12 +89,16 @@ export const ordersTools: Tool[] = [
   },
   {
     name: "place_limit_order",
-    description: "Place a limit order",
+    description:
+      "Place a limit order. Use positive quantity for buy and negative quantity for sell.",
     inputSchema: {
       type: "object",
       properties: {
         ticker: { type: "string", description: "Ticker symbol" },
-        quantity: { type: "number", description: "Order quantity" },
+        quantity: {
+          type: "number",
+          description: "Order quantity (positive = buy, negative = sell)",
+        },
         limitPrice: { type: "number", description: "Limit price" },
         timeValidity: TIME_VALIDITY_SCHEMA,
       },
@@ -81,12 +107,16 @@ export const ordersTools: Tool[] = [
   },
   {
     name: "place_market_order",
-    description: "Place a market order",
+    description:
+      "Place a market order. Use positive quantity for buy and negative quantity for sell.",
     inputSchema: {
       type: "object",
       properties: {
         ticker: { type: "string", description: "Ticker symbol" },
-        quantity: { type: "number", description: "Order quantity" },
+        quantity: {
+          type: "number",
+          description: "Order quantity (positive = buy, negative = sell)",
+        },
         extendedHours: {
           type: "boolean",
           description: "Allow execution outside regular trading hours",
@@ -97,12 +127,16 @@ export const ordersTools: Tool[] = [
   },
   {
     name: "place_stop_order",
-    description: "Place a stop order",
+    description:
+      "Place a stop order. Use positive quantity for buy and negative quantity for sell.",
     inputSchema: {
       type: "object",
       properties: {
         ticker: { type: "string", description: "Ticker symbol" },
-        quantity: { type: "number", description: "Order quantity" },
+        quantity: {
+          type: "number",
+          description: "Order quantity (positive = buy, negative = sell)",
+        },
         stopPrice: { type: "number", description: "Stop price" },
         timeValidity: TIME_VALIDITY_SCHEMA,
       },
@@ -111,12 +145,16 @@ export const ordersTools: Tool[] = [
   },
   {
     name: "place_stop_limit_order",
-    description: "Place a stop-limit order",
+    description:
+      "Place a stop-limit order. Use positive quantity for buy and negative quantity for sell.",
     inputSchema: {
       type: "object",
       properties: {
         ticker: { type: "string", description: "Ticker symbol" },
-        quantity: { type: "number", description: "Order quantity" },
+        quantity: {
+          type: "number",
+          description: "Order quantity (positive = buy, negative = sell)",
+        },
         stopPrice: { type: "number", description: "Stop price" },
         limitPrice: { type: "number", description: "Limit price" },
         timeValidity: TIME_VALIDITY_SCHEMA,
@@ -139,9 +177,9 @@ export const ordersTools: Tool[] = [
 
 export async function handleFetchAllOrders(
   client: OrdersClient,
-  _params: ListOrdersParams = {},
+  params: ListOrdersParams = {},
 ): Promise<string> {
-  const orders = await client.fetchAllOrders();
+  const orders = await client.fetchAllOrders(params);
   return JSON.stringify(orders, null, 2);
 }
 

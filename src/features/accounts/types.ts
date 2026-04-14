@@ -2,7 +2,7 @@
  * Accounts Feature Types
  */
 
-export interface AccountMetadata {
+export interface AccountSummary {
   id: number;
   currency: string;
   totalValue: number;

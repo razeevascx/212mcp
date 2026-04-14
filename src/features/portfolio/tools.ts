@@ -8,57 +8,30 @@ import { PortfolioClient } from "./client.js";
 export const portfolioTools: Tool[] = [
   {
     name: "fetch_open_positions",
-    description: "Fetch all open positions",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: [],
-    },
-  },
-  {
-    name: "search_specific_position_by_ticker",
-    description: "Search for a position by ticker using POST endpoint",
-    inputSchema: {
-      type: "object",
-      properties: {
-        ticker: { type: "string", description: "Ticker symbol" },
-      },
-      required: ["ticker"],
-    },
-  },
-  {
-    name: "fetch_open_position_by_ticker",
     description:
-      "Fetch a position by ticker (deprecated, use search_specific_position_by_ticker)",
+      "Fetch open positions, optionally filtered by ticker. Response includes a summary and raw data.",
     inputSchema: {
       type: "object",
       properties: {
-        ticker: { type: "string", description: "Ticker symbol" },
+        ticker: { type: "string", description: "Optional ticker symbol filter" },
       },
-      required: ["ticker"],
+      required: [],
     },
   },
 ];
 
 export async function handleFetchOpenPositions(
   client: PortfolioClient,
+  ticker?: string,
 ): Promise<string> {
-  const positions = await client.fetchOpenPositions();
-  return JSON.stringify(positions, null, 2);
-}
-
-export async function handleSearchSpecificPositionByTicker(
-  client: PortfolioClient,
-  ticker: string,
-): Promise<string> {
-  const positions = await client.searchSpecificPositionByTicker(ticker);
-  return JSON.stringify(positions, null, 2);
-}
-
-export async function handleFetchOpenPositionByTicker(
-  client: PortfolioClient,
-  ticker: string,
-): Promise<string> {
-  const position = await client.fetchOpenPositionByTicker(ticker);
-  return JSON.stringify(position, null, 2);
+  const positions = await client.fetchOpenPositions(ticker);
+  const summary = positions.map((position) => ({
+    ticker: position.ticker || position.instrument.ticker,
+    quantity: position.quantity,
+    currentPrice: position.currentPrice,
+    currentValue: position.walletImpact.currentValue,
+    unrealizedPl: position.walletImpact.unrealizedProfitLoss,
+    currency: position.walletImpact.currency,
+  }));
+  return JSON.stringify({ summary, raw: positions }, null, 2);
 }
